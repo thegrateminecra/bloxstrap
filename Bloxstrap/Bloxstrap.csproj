@@ -14,6 +14,15 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
+
+  <!-- A build with an empty CommitRef isn't recognised as a production build, which makes the
+       auto-updater re-download the release EXE on every single launch. Treat local release
+       builds as production so the version comparison can short-circuit properly. CI can
+       still override these. -->
+  <PropertyGroup>
+    <CommitRef Condition="'$(CommitRef)' == ''">tag/$(Version)</CommitRef>
+    <CommitHash Condition="'$(CommitHash)' == ''">local</CommitHash>
+  </PropertyGroup>
     
   <ItemGroup>
     <Resource Include="Bloxstrap.ico" />

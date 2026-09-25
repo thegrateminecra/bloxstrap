@@ -12,6 +12,11 @@ namespace Bloxstrap.UI.ViewModels.About
         public string BuildCommitHashUrl => $"https://github.com/{App.ProjectRepository}/commit/{BuildMetadata.CommitHash}";
 
         public Visibility BuildInformationVisibility => App.IsProductionBuild ? Visibility.Collapsed : Visibility.Visible;
-        public Visibility BuildCommitVisibility => App.IsActionBuild ? Visibility.Visible : Visibility.Collapsed;
+
+        // local release builds carry a placeholder hash, so there's nothing worth linking to
+        private bool HasRealCommit => Regex.IsMatch(BuildMetadata.CommitHash ?? "", "^[0-9a-f]{7,40}$");
+
+        public Visibility BuildCommitVisibility =>
+            App.IsActionBuild && HasRealCommit ? Visibility.Visible : Visibility.Collapsed;
     }
 }
