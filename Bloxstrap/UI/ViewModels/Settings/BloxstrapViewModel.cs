@@ -10,6 +10,35 @@ namespace Bloxstrap.UI.ViewModels.Settings
     {
         public WebEnvironment[] WebEnvironments => Enum.GetValues<WebEnvironment>();
 
+        public RobloxVersionMode[] RobloxVersionModes => Enum.GetValues<RobloxVersionMode>();
+
+        public RobloxVersionMode VersionMode
+        {
+            get => App.Settings.Prop.RobloxVersionMode;
+            set
+            {
+                if (App.Settings.Prop.RobloxVersionMode == value)
+                    return;
+
+                App.Settings.Prop.RobloxVersionMode = value;
+
+                if (value != RobloxVersionMode.Custom && !String.IsNullOrEmpty(CustomVersion))
+                    CustomVersion = string.Empty;
+
+                OnPropertyChanged(nameof(CustomVersionVisibility));
+            }
+        }
+
+        public string CustomVersion
+        {
+            get => App.Settings.Prop.CustomVersionGuid;
+            set => App.Settings.Prop.CustomVersionGuid = value;
+        }
+
+        public Visibility CustomVersionVisibility => VersionMode == RobloxVersionMode.Custom
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
         public bool UpdateCheckingEnabled
         {
             get => App.Settings.Prop.CheckForUpdates;

@@ -23,6 +23,18 @@
             <ui:ToggleSwitch IsChecked="{Binding UpdateCheckingEnabled, Mode=TwoWay}" />
         </controls:OptionControl>
 
+        <!-- Roblox version pinning. Not localized - deliberately terse, these are power-user knobs -->
+        <controls:OptionControl Header="Roblox version" Description="Which Roblox version to run. Latest always follows Roblox, Pinned keeps whatever is already installed, Custom runs a specific version hash.">
+            <ComboBox Width="200" Padding="10,5,10,5" ItemsSource="{Binding RobloxVersionModes, Mode=OneWay}" SelectedValue="{Binding VersionMode, Mode=TwoWay}" />
+        </controls:OptionControl>
+
+        <controls:OptionControl
+            Visibility="{Binding Path=CustomVersionVisibility, Mode=OneWay}"
+            Header="Version hash"
+            Description="The version hash to run, without the version- prefix.">
+            <ui:TextBox Width="360" Padding="10,5,10,5" Text="{Binding CustomVersion, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </controls:OptionControl>
+
         <controls:OptionControl 
             Header="{x:Static resources:Strings.Menu_Bloxstrap_Analytics_Title}"
             Description="{Binding Source={x:Static resources:Strings.Menu_Bloxstrap_Analytics_Description}, Converter={StaticResource StringFormatConverter}, ConverterParameter='https://thegrateminecra.github.io/bloxstrap/wiki/info/privacy-policy/'}">

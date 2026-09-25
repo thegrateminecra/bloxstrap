@@ -13,6 +13,8 @@ namespace Bloxstrap.Models.Persistable
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool DeveloperMode { get; set; } = false;
         public bool CheckForUpdates { get; set; } = true;
+        public RobloxVersionMode RobloxVersionMode { get; set; } = RobloxVersionMode.Latest;
+        public string CustomVersionGuid { get; set; } = string.Empty;
         public bool ConfirmLaunches { get; set; } = false;
         public string Locale { get; set; } = "nil";
         public bool UseFastFlagManager { get; set; } = true;

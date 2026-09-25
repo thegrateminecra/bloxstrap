@@ -65,6 +65,15 @@ namespace Bloxstrap
         private bool _mustUpgrade => App.LaunchSettings.ForceFlag.Active || App.State.Prop.ForceReinstall || String.IsNullOrEmpty(AppData.DistributionState.VersionGuid) || !File.Exists(AppData.ExecutablePath);
         private bool _noConnection = false;
 
+        /// <summary>
+        /// True when the user has pinned their Roblox version and that version is already
+        /// sitting on disk intact. Nothing needs downloading, so we can skip the CDN round trip.
+        /// </summary>
+        private bool IsFullyPinned =>
+            App.Settings.Prop.RobloxVersionMode == RobloxVersionMode.Pinned
+            && !_mustUpgrade
+            && Directory.Exists(AppData.Directory);
+
         private AsyncMutex? _mutex;
 
         private int _appPid = 0;
@@ -184,12 +193,19 @@ namespace Bloxstrap
 
             SetStatus(Strings.Bootstrapper_Status_Connecting);
 
-            var connectionResult = await Deployment.InitializeConnectivity();
+            if (IsFullyPinned)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Pinned to an installed version, skipping connectivity check");
+            }
+            else
+            {
+                var connectionResult = await Deployment.InitializeConnectivity();
 
-            App.Logger.WriteLine(LOG_IDENT, "Connectivity check finished");
+                App.Logger.WriteLine(LOG_IDENT, "Connectivity check finished");
 
-            if (connectionResult is not null)
-                HandleConnectionError(connectionResult);
+                if (connectionResult is not null)
+                    HandleConnectionError(connectionResult);
+            }
             
 #if (!DEBUG || DEBUG_UPDATER) && !QA_BUILD
             if (App.Settings.Prop.CheckForUpdates && !App.LaunchSettings.UpgradeFlag.Active)
@@ -407,7 +423,47 @@ namespace Bloxstrap
             string? newVersionGuid = null;
             Version? newVersion = null;
 
-            if (!App.LaunchSettings.VersionFlag.Active || string.IsNullOrEmpty(App.LaunchSettings.VersionFlag.Data))
+            // a version passed via launch args always wins - it's an explicit per-launch request
+            string? launchArgVersion = App.LaunchSettings.VersionFlag.Active && !string.IsNullOrEmpty(App.LaunchSettings.VersionFlag.Data)
+                ? App.LaunchSettings.VersionFlag.Data
+                : null;
+
+            // settings-driven override, only applies when no launch arg was given
+            string? customVersion = App.Settings.Prop.RobloxVersionMode == RobloxVersionMode.Custom
+                && !string.IsNullOrWhiteSpace(App.Settings.Prop.CustomVersionGuid)
+                    ? App.Settings.Prop.CustomVersionGuid.Trim()
+                    : null;
+
+            bool pinToCurrent = App.Settings.Prop.RobloxVersionMode == RobloxVersionMode.Pinned;
+
+            if (launchArgVersion is not null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Version set to {launchArgVersion} from arguments");
+                newVersionGuid = launchArgVersion;
+                // we can't determine the version
+            }
+            else if (customVersion is not null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, $"Version set to {customVersion} from settings");
+                newVersionGuid = customVersion;
+            }
+            else if (pinToCurrent)
+            {
+                // stick to whatever is already on disk - this is what disables updates
+                string? installed = AppData.DistributionState.VersionGuid;
+
+                if (string.IsNullOrEmpty(installed))
+                {
+                    App.Logger.WriteLine(LOG_IDENT, "Pinned mode requested but nothing is installed, falling back to latest");
+                }
+                else
+                {
+                    App.Logger.WriteLine(LOG_IDENT, $"Pinned to installed version {installed}");
+                    newVersionGuid = installed;
+                }
+            }
+
+            if (newVersionGuid is null)
             {
                 ClientVersion clientVersion;
 
@@ -428,12 +484,7 @@ namespace Bloxstrap
                 newVersionGuid = clientVersion.VersionGuid;
                 newVersion = Utilities.ParseVersionSafe(clientVersion.Version);
             }
-            else
-            {
-                App.Logger.WriteLine(LOG_IDENT, $"Version set to {App.LaunchSettings.VersionFlag.Data} from arguments");
-                newVersionGuid = App.LaunchSettings.VersionFlag.Data;
-                // we can't determine the version
-            }
+
 
             if (newVersionGuid != _latestVersionGuid)
             {
@@ -446,6 +497,24 @@ namespace Bloxstrap
                 var pkgManifestData = await App.HttpClient.GetStringAsync(pkgManifestUrl);
 
                 _versionPackageManifest = new(pkgManifestData);
+            }
+            else if (_versionPackageManifest is null)
+            {
+                // pinned to a version we already have on disk and the launch mode is known,
+                // so there's nothing to extract and no reason to touch the network
+                if (pinToCurrent && _launchMode != LaunchMode.Unknown && Directory.Exists(_latestVersionDirectory))
+                {
+                    App.Logger.WriteLine(LOG_IDENT, "Reusing empty package manifest, skipping fetch");
+
+                    _versionPackageManifest = new();
+                }
+                else
+                {
+                    string pkgManifestUrl = Deployment.GetLocation($"/{_latestVersionGuid}-rbxPkgManifest.txt");
+                    var pkgManifestData = await App.HttpClient.GetStringAsync(pkgManifestUrl);
+
+                    _versionPackageManifest = new(pkgManifestData);
+                }
             }
 
             // this can happen if version is set through arguments

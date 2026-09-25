@@ -8,6 +8,14 @@ namespace Bloxstrap.Models.Manifest
 {
     public class PackageManifest : List<Package>
     {
+        /// <summary>
+        /// Empty manifest. Used when the bootstrapper is pinned to a version that is already
+        /// on disk, so there is no package list to parse and nothing left to download.
+        /// </summary>
+        public PackageManifest()
+        {
+        }
+
         public PackageManifest(string data)
         {
             using var reader = new StringReader(data);
