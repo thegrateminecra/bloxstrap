@@ -24,7 +24,7 @@ namespace Bloxstrap.UI
 
             string info = String.Format(
                 Strings.Dialog_PlayerError_FailedLaunch,
-                $"https://bloxstraplabs.com/wiki/help/roblox-crashes-or-does-not-launch/"
+                $"https://thegrateminecra.github.io/bloxstrap/wiki/help/roblox-crashes-or-does-not-launch/"
             );
 
             ShowMessageBox(info, MessageBoxImage.Error);

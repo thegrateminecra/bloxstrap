@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>True</UseWindowsForms>
+    <OutputPath>..\..\build\</OutputPath>
     <ApplicationIcon>Bloxstrap.ico</ApplicationIcon>
     <Version>2.11.4</Version>
     <FileVersion>2.11.4</FileVersion>
@@ -116,5 +117,10 @@
       <LastGenOutput>Strings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+
+  <Target Name="PublishRelease" AfterTargets="Build" Condition="'$(BuildingInsideVisualStudio)' != 'true' AND '$(PublishRelease)' != 'false'">
+    <RemoveDir Directories="..\..\build\release\" />
+    <Exec Command="dotnet publish &quot;$(ProjectPath)&quot; -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:PublishRelease=false -o &quot;..\..\build\release\&quot;" />
+  </Target>
 
 </Project>

@@ -27,7 +27,7 @@ namespace Bloxstrap.UI.Elements.Dialogs
                 LocateLogFileButton.Content = Strings.Dialog_Exception_CopyLogContents;
 
             string repoUrl = $"https://github.com/{App.ProjectRepository}";
-            string wikiUrl = $"https://bloxstraplabs.com/wiki/help/";
+            string wikiUrl = $"https://thegrateminecra.github.io/bloxstrap/wiki/help/";
 
             string title = HttpUtility.UrlEncode($"[BUG] {exception.GetType()}: {exception.Message}");
             string log = HttpUtility.UrlEncode(App.Logger.AsDocument);
