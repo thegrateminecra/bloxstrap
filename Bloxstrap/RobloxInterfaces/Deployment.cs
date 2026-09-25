@@ -34,6 +34,10 @@
             { "https://s3.amazonaws.com/setup.roblox.com", 4 }
         };
 
+        // the best mirror we know of, used when InitializeConnectivity never ran to pick one
+        private static readonly string PrimaryBaseUrl =
+            BaseUrls.OrderBy(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).First().Key;
+
         private static async Task<string?> TestConnection(string url, int priority, CancellationToken token)
         {
             string LOG_IDENT = $"Deployment::TestConnection<{url}>";
@@ -116,7 +120,10 @@
 
         public static string GetLocation(string resource)
         {
-            string location = BaseUrl;
+            // BaseUrl is only assigned by InitializeConnectivity, which is skipped when the user has
+            // pinned their version and there's nothing to fetch. rather than handing HttpClient a
+            // relative URI and letting it throw, assume the best mirror we've got
+            string location = String.IsNullOrEmpty(BaseUrl) ? PrimaryBaseUrl : BaseUrl;
             location += "/channel/common";
             location += resource;
 

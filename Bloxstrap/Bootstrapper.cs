@@ -71,8 +71,20 @@ namespace Bloxstrap
         /// </summary>
         private bool IsFullyPinned =>
             App.Settings.Prop.RobloxVersionMode == RobloxVersionMode.Pinned
+            // a version handed to us on the command line outranks the pin, so whatever's on disk
+            // might not be the thing we're about to run and the network isn't optional after all
+            && !App.LaunchSettings.VersionFlag.Active
             && !_mustUpgrade
             && Directory.Exists(AppData.Directory);
+
+        /// <summary>
+        /// True when the given version is the one our distribution state already points at and it's
+        /// still sitting on disk intact, meaning no install will be attempted for it.
+        /// </summary>
+        private bool IsVersionIntact(string versionGuid) =>
+            !_mustUpgrade
+            && AppData.DistributionState.VersionGuid == versionGuid
+            && Directory.Exists(Path.Combine(Paths.Versions, versionGuid));
 
         private AsyncMutex? _mutex;
 
@@ -486,35 +498,35 @@ namespace Bloxstrap
             }
 
 
-            if (newVersionGuid != _latestVersionGuid)
+            bool guidChanged = newVersionGuid != _latestVersionGuid;
+
+            if (guidChanged)
             {
                 _latestVersionGuid = newVersionGuid!;
                 _latestVersion = newVersion;
 
                 _latestVersionDirectory = Path.Combine(Paths.Versions, _latestVersionGuid);
-
-                string pkgManifestUrl = Deployment.GetLocation($"/{_latestVersionGuid}-rbxPkgManifest.txt");
-                var pkgManifestData = await App.HttpClient.GetStringAsync(pkgManifestUrl);
-
-                _versionPackageManifest = new(pkgManifestData);
             }
-            else if (_versionPackageManifest is null)
-            {
-                // pinned to a version we already have on disk and the launch mode is known,
-                // so there's nothing to extract and no reason to touch the network
-                if (pinToCurrent && _launchMode != LaunchMode.Unknown && Directory.Exists(_latestVersionDirectory))
-                {
-                    App.Logger.WriteLine(LOG_IDENT, "Reusing empty package manifest, skipping fetch");
 
-                    _versionPackageManifest = new();
-                }
-                else
+            // if the version we resolved is the one already recorded in our distribution state and it's
+            // still unpacked on disk, then nothing is getting installed and there's no package list worth
+            // parsing. the connectivity check gets skipped for that case too, so there isn't even a CDN
+            // base URL to ask for one with
+            if (!IsVersionIntact(_latestVersionGuid))
+            {
+                if (guidChanged || _versionPackageManifest is null)
                 {
                     string pkgManifestUrl = Deployment.GetLocation($"/{_latestVersionGuid}-rbxPkgManifest.txt");
                     var pkgManifestData = await App.HttpClient.GetStringAsync(pkgManifestUrl);
 
                     _versionPackageManifest = new(pkgManifestData);
                 }
+            }
+            else if (_versionPackageManifest is null)
+            {
+                App.Logger.WriteLine(LOG_IDENT, "Nothing to install, skipping package manifest fetch");
+
+                _versionPackageManifest = new();
             }
 
             // this can happen if version is set through arguments

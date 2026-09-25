@@ -8,8 +8,8 @@
     <UseWindowsForms>True</UseWindowsForms>
     <OutputPath>..\..\build\</OutputPath>
     <ApplicationIcon>Bloxstrap.ico</ApplicationIcon>
-    <Version>2.12.0</Version>
-    <FileVersion>2.12.0</FileVersion>
+    <Version>2.12.1</Version>
+    <FileVersion>2.12.1</FileVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
